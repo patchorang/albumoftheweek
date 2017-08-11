@@ -12,12 +12,23 @@ var request = require('request'); // "Request" library
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 
+//set expected port. This can be modified later
+const port = process.env.PORT || 8080;
+
+
+
+//this will need to be moved to .env file
 var client_id = '64a503d7b10a4380b70b71a8644f336a'; // Your client id
 var client_secret = '297e2e0720d44e5da48204dd6f8498ad'; // Your secret
-var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
+//set in .env
 
+
+const base_uri = process.env.C9_HOSTNAME || "localhost";
+var redirect_uri = `https://${base_uri}:${port}/callback`; // Your redirect uri
+console.log("redirect", redirect_uri);
+
+//move to dependencies
 var SpotifyWebApi = require('spotify-web-api-node');
-
 // credentials are optional
 var spotifyApi = new SpotifyWebApi({
   clientId : client_id,
@@ -25,20 +36,29 @@ var spotifyApi = new SpotifyWebApi({
   redirectUri : redirect_uri
 });
 
+//we don't have the access token yet. it's not the same thing as clientId or clientSecret
+//we can get one for just the client.
 // spotifyApi.getArtistAlbums('43ZHCT0cAZBISjO8DG9PnE')
 //   .then(function(data) {
 //     console.log('Artist albums', data.body);
 //   }, function(err) {
 //     console.error(err);
-// });
-
-
+//   });
 
 var app = express();
 
-app.use(express.static(__dirname + '/public'))
-   .use(cookieParser());
+const morgan = require("morgan");
+//Basic logger to see incoming requests
+app.use(morgan("tiny"));
 
+//Serve static assets from the public directory
+app.use(express.static(__dirname + '/public'));
+
+//Parse cookies
+app.use(cookieParser());
+
+
+//we will move these to a routes dir
 app.get('/login', function(req, res) {
   var scopes = ['user-read-private', 'user-read-email'],
       state = 'some-state-of-my-choice';
@@ -50,6 +70,7 @@ app.get('/login', function(req, res) {
 
 
 app.get('/callback', function(req, res) {
+  console.log("callback getting called");
 
   /* Read query parameters */
   var code  = req.query.code; // Read the authorization code from the query parameters
@@ -228,5 +249,7 @@ app.get('/callback', function(req, res) {
 //   });
 // });
 
-console.log('Listening on 8888');
-app.listen(8888);
+
+
+console.log(`Listening on ${port}`);
+app.listen(port);
